@@ -282,36 +282,87 @@ fun MfCompareApp(
     }
 
     if (isRollingReturnRankingsOpen) {
-        BackHandler {
-            viewModel.closeRollingReturnRankings()
-        }
-        RollingReturnRankingsScreen(
-            result = rollingRankingsResult,
-            isLoading = isRollingRankingsLoading,
-            selectedWindow = rollingRankingWindow,
-            startEpochDay = rollingRankingStartEpochDay,
-            selectedMetric = rollingRankingMetric,
-            selectedCategories = rollingRankingCategories,
-            syncStatus = syncStatus,
-            isDark = isDark,
-            onBack = viewModel::closeRollingReturnRankings,
-            onToggleTheme = viewModel::toggleTheme,
-            onSelectWindow = viewModel::setRollingRankingWindow,
-            onSelectStartDate = viewModel::setRollingRankingStartDate,
-            onSelectMetric = viewModel::setRollingRankingMetric,
-            onApplyCategories = viewModel::setRollingRankingCategories,
-            onOpenFundInCompare = { code ->
-                viewModel.compareSchemesFromExternal(listOf(code))
+            BackHandler {
                 viewModel.closeRollingReturnRankings()
-            },
-            onToggleFavourite = viewModel::toggleFavourite,
-            onStartUniverseSync = viewModel::startUniverseHistorySync,
-            onPauseUniverseSync = viewModel::pauseUniverseHistorySync
-        )
-        return
-    }
+            }
+            RollingReturnRankingsScreen(
+                result = rollingRankingsResult,
+                isLoading = isRollingRankingsLoading,
+                selectedWindow = rollingRankingWindow,
+                startEpochDay = rollingRankingStartEpochDay,
+                selectedMetric = rollingRankingMetric,
+                selectedCategories = rollingRankingCategories,
+                syncStatus = syncStatus,
+                isDark = isDark,
+                onBack = viewModel::closeRollingReturnRankings,
+                onToggleTheme = viewModel::toggleTheme,
+                onSelectWindow = viewModel::setRollingRankingWindow,
+                onSelectStartDate = viewModel::setRollingRankingStartDate,
+                onSelectMetric = viewModel::setRollingRankingMetric,
+                onApplyCategories = viewModel::setRollingRankingCategories,
+                onOpenFundInCompare = { code ->
+                    viewModel.compareSchemesFromExternal(listOf(code))
+                    viewModel.closeRollingReturnRankings()
+                },
+                onToggleFavourite = viewModel::toggleFavourite,
+                onStartUniverseSync = viewModel::startUniverseHistorySync,
+                onPauseUniverseSync = viewModel::pauseUniverseHistorySync
+            )
+            return
+        }
 
-    if (selectedTab != AppTab.COMPARE) {
+        if (isBlendRankingsOpen) {
+            BackHandler {
+                viewModel.closeBlendRankings()
+            }
+            BlendRankingsScreen(
+                result = blendRankingsResult,
+                isLoading = isBlendRankingsLoading,
+                timeframe = blendRankingsTimeframe,
+                customStartEpochDay = blendCustomStartEpochDay,
+                rollingWindow = blendRollingWindow,
+                sipTenure = blendSipTenure,
+                sipAmount = blendSipAmount,
+                sipWeight = blendSipWeight,
+                peerGroupAll = blendPeerGroupAll,
+                selectedCategories = blendCategories,
+                minFundAgeDays = blendMinFundAgeDays,
+                minSipXirr = blendMinSipXirr,
+                minRollingAvg = blendMinRollingAvg,
+                minRollingMedian = blendMinRollingMedian,
+                consistencyHurdle = blendConsistencyHurdle,
+                minConsistency = blendMinConsistency,
+                sortBy = blendSortBy,
+                syncStatus = syncStatus,
+                isDark = isDark,
+                onBack = viewModel::closeBlendRankings,
+                onToggleTheme = viewModel::toggleTheme,
+                onSelectTimeframe = viewModel::setBlendTimeframe,
+                onCustomStartDateSelected = viewModel::setBlendCustomStartDate,
+                onSelectRollingWindow = viewModel::setBlendRollingWindow,
+                onSelectSipTenure = viewModel::setBlendSipTenure,
+                onSelectSipAmount = viewModel::setBlendSipAmount,
+                onSelectSipWeight = viewModel::setBlendSipWeight,
+                onTogglePeerGroupAll = viewModel::setBlendPeerGroupAll,
+                onApplyCategories = viewModel::setBlendCategories,
+                onUpdateMinFundAge = viewModel::setBlendMinFundAgeDays,
+                onUpdateMinSipXirr = viewModel::setBlendMinSipXirr,
+                onUpdateMinRollingAvg = viewModel::setBlendMinRollingAvg,
+                onUpdateMinRollingMedian = viewModel::setBlendMinRollingMedian,
+                onUpdateConsistencyHurdle = viewModel::setBlendConsistencyHurdle,
+                onUpdateMinConsistency = viewModel::setBlendMinConsistency,
+                onSelectSortBy = viewModel::setBlendSortBy,
+                onOpenFundInCompare = { code ->
+                    viewModel.compareSchemesFromExternal(listOf(code))
+                    viewModel.closeBlendRankings()
+                },
+                onToggleFavourite = viewModel::toggleFavourite,
+                onRefreshSync = { viewModel.triggerCatalogSync(force = true) }
+            )
+            return
+        }
+
+        if (selectedTab != AppTab.COMPARE) {
         BackHandler {
             viewModel.selectTab(AppTab.COMPARE)
         }
@@ -454,6 +505,7 @@ fun MfCompareApp(
                     onOpenRollingReturn = viewModel::openRollingReturnAnalysis,
                     onOpenSipRankings = viewModel::openSipRankings,
                     onOpenRollingReturnRankings = viewModel::openRollingReturnRankings,
+                    onOpenBlendRankings = viewModel::openBlendRankings,
                     onRefreshSync = { viewModel.triggerCatalogSync(force = true) },
                     modifier = Modifier.fillMaxSize()
                 )

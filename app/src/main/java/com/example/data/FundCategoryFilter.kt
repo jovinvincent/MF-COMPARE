@@ -1,5 +1,121 @@
 package com.example.data
 
+import androidx.compose.runtime.remember
+import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.VerticalAlignment
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.TextButtonDefaults
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.LazyColumn
+import androidx.compose.material3.Items
+import androidx.compose.material3.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ToggleableState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.vector.SolidColor
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.util.Locale
+import kotlin.math.abs
+import androidx.compose.ui.graphics.vector.VectorPath
+
+/**
+ * Helper composable for individual category tick rows.
+ * Used by multiple category filter sheets.
+ */
+@Composable
+fun CategoryTickRow(
+    option: FundCategoryOption,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+            .testTag("category_tick_row_${option.id}")
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() }
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Checkbox(
+                checked = checked,
+                onCheckedChange = { onToggle() },
+                modifier = Modifier.testTag("category_checkbox_${option.id}")
+            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (checked) FontWeight.Bold else FontWeight.Normal,
+                    color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+                option.subtitle?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (checked) {
+                Icon(
+                    imageVector = Icons.Filled.Done,
+                    contentDescription = "Checked",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+        }
+    }
+}
+
 enum class FundCategoryGroup(val title: String) {
     EQUITY("1. Equity Schemes (13)"),
     THEMES("Sectoral / Thematic Themes"),
@@ -461,7 +577,241 @@ object FundCategoryFilter {
     }
 
     /**
-     * Expose theme ID list check for sectoral equity grouping.
-     */
-    fun isSectoralOrThematicCategory(id: String): Boolean = id in SECTORAL_THEME_IDS
-}
+         * Expose theme ID list check for sectoral equity grouping.
+         */
+        fun isSectoralOrThematicCategory(id: String): Boolean = id in SECTORAL_THEME_IDS
+
+        /**
+         * Multi-select sheet content for Blend Rankings category filter.
+         * Reuses the same logic as CategoryMultiSelectSheetContent but with different callback signature.
+         */
+        @Composable
+        fun CategoryMultiSetSheetContent(
+            selectedCategories: Set<String>,
+            onApply: (Set<String>) -> Unit,
+            onCancel: () -> Unit
+        ) {
+            var pendingSelected by remember { mutableStateOf(selectedCategories) }
+            var filterQuery by remember { mutableStateOf("") }
+            var expandedGroups by remember {
+                mutableStateOf(
+                    FundCategoryGroup.entries.filter { grp ->
+                        grp == FundCategoryGroup.EQUITY ||
+                            FundCategoryFilter.GROUPED_CATEGORIES[grp].orEmpty().any { pendingSelected.contains(it.id) }
+                    }.toSet()
+                )
+            }
+
+            val trimmedQuery = filterQuery.trim().lowercase()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.88f)
+                    .padding(horizontal = 16.dp)
+                    .testTag("category_filter_sheet_blend"),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Filter by Fund Category",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (pendingSelected.isEmpty()) {
+                                "Multi-select across Equity, Debt, Hybrid, SIF & More"
+                            } else {
+                                "${pendingSelected.size} categories ticked"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(
+                        onClick = { pendingSelected = emptySet() },
+                        enabled = pendingSelected.isNotEmpty(),
+                        modifier = Modifier.testTag("category_filter_sheet_clear")
+                    ) {
+                        Text("Clear All")
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Quick Category Search Box
+                OutlinedTextField(
+                    value = filterQuery,
+                    onValueChange = { filterQuery = it },
+                    placeholder = {
+                        Text("Search category (e.g. Small Cap, Long-Short, Gilt)", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search categories") },
+                    trailingIcon = {
+                        if (filterQuery.isNotEmpty()) {
+                            IconButton(onClick = { filterQuery = "" }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("category_filter_search_input_blend")
+                )
+
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+
+                // Grouped Multi-Tickable Category Accordion List
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .testTag("category_filter_lazy_list_blend"),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FundCategoryGroup.entries.forEach { group ->
+                        val allInGroup = FundCategoryFilter.GROUPED_CATEGORIES[group].orEmpty()
+                        val visibleInGroup = if (trimmedQuery.isEmpty()) {
+                            allInGroup
+                        } else {
+                            allInGroup.filter {
+                                it.label.lowercase().contains(trimmedQuery) ||
+                                    (it.subtitle?.lowercase()?.contains(trimmedQuery) == true) ||
+                                    group.title.lowercase().contains(trimmedQuery)
+                            }
+                        }
+
+                        if (visibleInGroup.isNotEmpty()) {
+                            val isExpanded = trimmedQuery.isNotEmpty() || expandedGroups.contains(group)
+                            val selectedInGroupCount = allInGroup.count { pendingSelected.contains(it.id) }
+                            val groupToggleState = when (selectedInGroupCount) {
+                                0 -> ToggleableState.Off
+                                allInGroup.size -> ToggleableState.On
+                                else -> ToggleableState.Indeterminate
+                            }
+
+                            item(key = "group_${group.name}") {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("category_group_header_blend_${group.name}")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                expandedGroups = if (expandedGroups.contains(group)) {
+                                                    expandedGroups - group
+                                                } else {
+                                                    expandedGroups + group
+                                                }
+                                            },
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TriStateCheckbox(
+                                            state = groupToggleState,
+                                            onClick = {
+                                                val ids = allInGroup.map { it.id }
+                                                pendingSelected = if (groupToggleState == ToggleableState.On) {
+                                                    pendingSelected - ids.toSet()
+                                                } else {
+                                                    pendingSelected + ids
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("category_group_checkbox_blend_${group.name}")
+                                        )
+                                        Text(
+                                            text = group.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (selectedInGroupCount > 0) {
+                                            Text(
+                                                text = "$selectedInGroupCount/${allInGroup.size}",
+                                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(end = 6.dp)
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(end = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isExpanded) {
+                                items(visibleInGroup, key = { "cat_${it.id}" }) { option ->
+                                    val isChecked = pendingSelected.contains(option.id)
+                                    CategoryTickRow(
+                                        option = option,
+                                        checked = isChecked,
+                                        onToggle = {
+                                            pendingSelected = if (isChecked) {
+                                                pendingSelected - option.id
+                                            } else {
+                                                pendingSelected + option.id
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+
+                // Sticky Bottom Action Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = { onCancel() },
+                        modifier = Modifier.weight(0.8f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = { onApply(pendingSelected) },
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .testTag("category_filter_apply_button_blend")
+                    ) {
+                        val applyLabel = if (pendingSelected.isEmpty()) {
+                            "Show All Categories"
+                        } else {
+                            "Apply Filter (${pendingSelected.size})"
+                        }
+                        Text(applyLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }

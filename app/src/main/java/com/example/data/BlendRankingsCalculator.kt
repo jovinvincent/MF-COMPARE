@@ -5,7 +5,6 @@ import java.time.LocalDate
 import java.util.Locale
 
 enum class BlendTimeframe(val label: String, val months: Long?, val years: Long?) {
-    M6("6M", 6L, null),
     Y1("1Y", null, 1L),
     Y3("3Y", null, 3L),
     Y5("5Y", null, 5L),
@@ -16,13 +15,12 @@ enum class BlendTimeframe(val label: String, val months: Long?, val years: Long?
     fun resolveStartEpochDay(referenceDay: Long = LocalDate.now().toEpochDay(), customEpochDay: Long? = null): Long {
         val refDate = LocalDate.ofEpochDay(referenceDay)
         return when (this) {
-            M6 -> refDate.minusMonths(6).toEpochDay()
             Y1 -> refDate.minusYears(1).toEpochDay()
             Y3 -> refDate.minusYears(3).toEpochDay()
             Y5 -> refDate.minusYears(5).toEpochDay()
             Y7 -> refDate.minusYears(7).toEpochDay()
             Y10 -> refDate.minusYears(10).toEpochDay()
-            CUSTOM -> customEpochDay ?: refDate.minusYears(1).toEpochDay()
+            CUSTOM -> customEpochDay ?: refDate.minusYears(3).toEpochDay()
         }
     }
 }

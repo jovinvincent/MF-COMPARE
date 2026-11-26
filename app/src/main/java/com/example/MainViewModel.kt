@@ -201,7 +201,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isBlendRankingsOpen = MutableStateFlow(false)
     val isBlendRankingsOpen: StateFlow<Boolean> = _isBlendRankingsOpen.asStateFlow()
 
-    private val _blendRankingsTimeframe = MutableStateFlow(BlendTimeframe.Y1)
+    private val _blendRankingsTimeframe = MutableStateFlow(BlendTimeframe.Y3)
     val blendRankingsTimeframe: StateFlow<BlendTimeframe> = _blendRankingsTimeframe.asStateFlow()
 
     private val _blendCustomStartEpochDay = MutableStateFlow<Long?>(null)
@@ -958,6 +958,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setBlendRollingWindow(window: RollingWindow) {
         _blendRollingWindow.value = window
+        // Auto-adjust consistency hurdle: 8% for Yearly, 0% for sub-yearly
+        _blendConsistencyHurdle.value = if (window == RollingWindow.YEARLY) 8.0 else 0.0
         refreshBlendRankings()
     }
 
