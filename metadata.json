@@ -1,0 +1,8 @@
+{
+  "name": "MF Compare",
+  "description": "Compare Direct Growth Indian mutual funds and market indices with interactive return charts, period rankings, and favourites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
